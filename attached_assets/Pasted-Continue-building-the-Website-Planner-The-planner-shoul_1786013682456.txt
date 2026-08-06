@@ -1,0 +1,247 @@
+Continue building the Website Planner.
+
+The planner should work like a modern onboarding wizard.
+
+Each screen asks only ONE question.
+
+Step 1
+
+What type of business do you run?
+
+Display large clickable cards.
+
+Restaurant
+
+Hotel
+
+School
+
+Church
+
+Construction
+
+Real Estate
+
+Clinic
+
+Law Firm
+
+Beauty
+
+Fashion
+
+Ecommerce
+
+Other
+
+Next
+
+Step 2
+
+Choose your package.
+
+Package 1
+
+Launch Website
+
+Starting from GH₵1,199
+
+Include
+
+Responsive Website
+
+Up to 6 Pages
+
+Contact Form
+
+WhatsApp Button
+
+Google Maps
+
+Social Links
+
+Admin Dashboard
+
+Customer Dashboard
+
+Analytics Dashboard
+
+Ready in 7 Days
+
+Package 2
+
+Business Pro
+
+Custom Quote
+
+For businesses needing advanced systems.
+
+Booking Systems
+
+Payments
+
+CRM
+
+Inventory
+
+Membership
+
+Advanced Analytics
+
+API Integrations
+
+Custom Development
+
+Step 3
+
+Choose additional features.
+
+Display beautiful toggle cards.
+
+Online Payments
+
+Booking System
+
+Blog
+
+Inventory
+
+Customer Login
+
+Appointment Booking
+
+Live Chat
+
+SMS Notifications
+
+Newsletter
+
+Google Reviews
+
+Social Feed
+
+Multi-language
+
+Each premium feature should increase the estimated project price.
+
+A live pricing summary should remain visible.
+
+Step 4
+
+Brand Identity
+
+Ask
+
+Do you already have branding?
+
+Options
+
+I already have branding
+
+I have a logo only
+
+I have brand colours only
+
+I need everything designed
+
+If they choose branding services, allow selection of:
+
+Logo Design
+
+Business Card
+
+Letterhead
+
+Brand Guidelines
+
+Social Media Kit
+
+Email Signature
+
+Each option updates the estimated price.
+
+Step 5
+
+Brand Colours
+
+Ask
+
+Choose your preferred colour palette.
+
+Display beautiful colour palette cards.
+
+Blue
+
+Purple
+
+Green
+
+Orange
+
+Gold
+
+Black
+
+Minimal White
+
+Modern Dark
+
+Also include
+
+Upload Existing Brand Colours
+
+Step 6
+
+Logo
+
+Do you already have a logo?
+
+Upload Logo
+
+or
+
+Design a Logo for Me
+
+If logo design is selected, ask
+
+Preferred logo style
+
+Minimal
+
+Luxury
+
+Corporate
+
+Modern
+
+Creative
+
+Typography
+
+Icon Based
+
+Step 7
+
+Describe your business.
+
+Large textarea.
+
+Optional.
+
+Step 8
+
+Contact Details.
+
+Business Name
+
+Contact Name
+
+Phone Number
+
+Email (Optional)
+
+City
+
+Website (Optional)
+
+At every step use smooth animations and premium transitions.
