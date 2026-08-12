@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": ["api/**/*"],
+  "exclude": ["node_modules", "dist", "src"],
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "es2022",
+    "types": ["node"],
+    "lib": ["esnext"],
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": false
+  }
+}
