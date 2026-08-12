@@ -1,0 +1,6 @@
+{
+  "buildCommand": "pnpm --filter @workspace/raven-digital run build",
+  "outputDirectory": "artifacts/raven-digital/dist/public",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": null
+}

@@ -42,6 +42,22 @@ Determine:
 - Backend (Express, Next.js API routes, standalone server, none)
 - Database, storage, auth, email services
 
+#### Workspace Analysis (monorepos)
+
+Do not assume every workspace package is a production requirement. For each package, determine:
+
+| Classification | Description |
+|---|---|
+| `production` | Built and deployed; genuinely needed at runtime |
+| `development-only` | Used for local dev, design tools, sandboxes, code generators |
+| `unused` | Listed in workspace but never imported by any production code |
+
+Specifically identify:
+- **Mockup / sandbox apps** — design tools, component playgrounds (e.g. `mockup-sandbox`). Not production.
+- **Code generation packages** — OpenAPI generators, Orval, Prisma codegen. Run at dev time only.
+- **Shared libraries with empty schemas or zero callers** — a `lib/db` package with an empty schema and no production queries is unused.
+- **Orphaned generated code** — `lib/api-client-react` with no active callers in the main app.
+
 ### Step 3 — Reproducibility Check
 
 Confirm that GitHub would contain everything needed to reproduce:
@@ -81,21 +97,67 @@ For each `@replit/*` package or Replit API found, classify as:
 
 Do NOT blindly remove Replit packages. Understand them first.
 
-### Step 6 — Vercel Analysis
+### Step 6 — Backend & API Analysis
 
-Determine Vercel compatibility **separately from portability**:
-- Does the frontend build statically or need SSR?
-- Does the backend fit Vercel Functions, or does it need a persistent process?
-- For monorepos: identify the correct `Root Directory` and `Build Command` per deployable app
-- Check for background jobs / WebSockets / persistent state that won't fit serverless
+#### 6a — Is a persistent backend actually required?
 
-Do not assume `Express = incompatible`. Vercel supports Express via `@vercel/node`.
+Inspect every API route. For each route, classify as:
 
-Report two statuses independently:
-- **PORTABILITY STATUS**: `PASS` / `PASS WITH WARNINGS` / `FAIL`
-- **VERCEL DEPLOYABILITY**: `READY` / `READY WITH CONFIGURATION` / `BLOCKED`
+| Class | Description | Production Deployment |
+|---|---|---|
+| `stateless` | Validates input, calls an external service, returns JSON. No DB reads/writes. No shared state. | Vercel Function |
+| `stateful` | Reads or writes a database per request | Vercel Function + database |
+| `background` | Long-running task, queue worker, cron job | Separate worker (Railway, Render) |
+| `streaming` | Server-Sent Events, WebSockets | Persistent server (Railway, Render, or Vercel Edge) |
 
-### Step 7 — Environment Variables
+**If all routes are `stateless` or `stateful`:** A persistent Express process is not required. Recommend Vercel Functions.
+
+**If any route is `background` or `streaming`:** A persistent server is genuinely required. Document why.
+
+Do not assume Express is incompatible with Vercel. Vercel supports Express via `@vercel/node`. But a Vercel Function is simpler and cheaper when all routes are stateless.
+
+#### 6b — Deployment Recommendation
+
+Based on route classification, recommend the **simplest** architecture:
+
+| Scenario | Recommendation |
+|---|---|
+| No backend | Static Vercel |
+| Stateless routes only | Vercel + Functions |
+| Stateless routes + database | Vercel + Functions + database |
+| Persistent server required | Vercel (frontend) + Railway/Render (backend) |
+| Complex backend | Alternative platform (document why) |
+
+#### 6c — Vercel Function Migration
+
+When migrating a stateless Express route to a Vercel Function:
+1. Create `api/<route-name>.ts` at the repo root (or inside the frontend artifact dir if Root Directory is set to it)
+2. Export a default `handler(req, res)` function — no router, no Express
+3. Move any route-specific dependencies to the correct `package.json`
+4. Add a Vite dev proxy (`server.proxy`) so `/api/*` requests reach the Express server locally
+5. Update frontend calls from `${VITE_API_BASE_URL}/api/...` → `/api/...` (relative URL — same origin on Vercel, proxied in dev)
+
+### Step 7 — Database Analysis
+
+#### Is a database actually used in production?
+
+Inspect:
+- Is there a DB package (`drizzle`, `prisma`, `pg`, `mongoose`, `better-sqlite3`, etc.)?
+- Does any **production route** actually query it?
+- Is the schema non-empty?
+
+If the database package exists but:
+- The schema is empty **and**
+- No production route queries it
+
+→ Classify as `unused`. **Do NOT provision a database just because the package exists.**
+
+If the database is genuinely used:
+- Document which routes use it and why
+- Recommend the simplest compatible provider (Neon, Supabase, Railway Postgres)
+- Document the migration/push command
+
+### Step 8 — Environment Variables
 
 Inventory all env vars. Classify each:
 
@@ -107,7 +169,7 @@ Inventory all env vars. Classify each:
 
 Document **names only**. Never expose values. Check `VITE_*` / `NEXT_PUBLIC_*` conventions for client-safe vars.
 
-### Step 8 — Safe Fixes (NORMAL MODE only)
+### Step 9 — Safe Fixes (NORMAL MODE only)
 
 Fix issues that are safe and well-understood. Examples:
 - Add/update `.gitignore` entries (`.env*`, `.vercel`, `dist/`, etc.)
@@ -115,10 +177,14 @@ Fix issues that are safe and well-understood. Examples:
 - Fix hardcoded `localhost` in production API calls → use env var
 - Add `engines` field to `package.json` if Node version is undeclared
 - Create `vercel.json` only when genuinely required and not inferable
+- Migrate stateless Express routes to Vercel Functions
+- Add Vite dev proxy so `/api/*` is available locally
+- Remove unused workspace package imports from production entry points
+- Add missing runtime dependencies to the correct `package.json`
 
 For risky changes (replacing auth, changing database, restructuring backend): report and recommend — do NOT automatically rewrite.
 
-### Step 9 — Validate
+### Step 10 — Validate
 
 Run what's available:
 ```bash
@@ -133,7 +199,7 @@ Report each as: `PASS` / `FAIL` / `NOT AVAILABLE` / `NOT RUN`
 
 Never report NOT AVAILABLE as FAIL. Never skip a validation and report it as PASS.
 
-### Step 10 — Vercel Dry Run (if available)
+### Step 11 — Vercel Dry Run (if available)
 
 ```bash
 vercel deploy --dry
@@ -141,7 +207,7 @@ vercel deploy --dry
 
 If Vercel CLI is unavailable, not linked, or not authenticated → report `NOT RUN: <reason>`. Do not treat inability to run as a failure.
 
-### Step 11 — Document (NORMAL MODE only)
+### Step 12 — Document (NORMAL MODE only)
 
 Create or update:
 - `docs/PORTABILITY.md` — architecture, Replit dev role, GitHub source-of-truth, prod platform, portability risks, handover notes
@@ -149,7 +215,7 @@ Create or update:
 
 See `reference/doc-templates.md` for full templates.
 
-### Step 12 — Report
+### Step 13 — Report
 
 Return the standardized report. See `reference/report-template.md`.
 
@@ -157,7 +223,7 @@ Return the standardized report. See `reference/report-template.md`.
 
 ## AUDIT-ONLY MODE
 
-Perform Steps 1–7 only. Run non-destructive validation (typecheck, build) if safe.
+Perform Steps 1–8 only. Run non-destructive validation (typecheck, build) if safe.
 
 Do NOT:
 - Modify source code
@@ -173,10 +239,47 @@ Return findings and recommendations only.
 
 This project uses a pnpm monorepo. Key rules:
 - Identify all deployable apps (`artifacts/*/`)
-- Each app may need a separate Vercel project with its own `Root Directory`
-- Shared packages (`packages/*`) must be included in the Vercel build
+- Not every artifact is a production deployment — identify which one(s) are
+- Each deployable app may need a separate Vercel project with its own `Root Directory`
+- Shared packages (`packages/*` or `lib/*`) must be included in the Vercel build
 - `pnpm --filter <app> run build` is the typical per-app build command
-- Preserve workspace dependencies; do not flatten the monorepo
+- Preserve workspace dependencies; do not flatten the monorepo unless justified
+- Development artifacts (sandboxes, mockups, design tools) are NOT deployed
+
+### vercel.json for monorepo root deployments
+
+When the Vercel project root is the repo root (not a subdirectory), use `vercel.json`:
+
+```json
+{
+  "buildCommand": "pnpm --filter @workspace/<app> run build",
+  "outputDirectory": "artifacts/<app>/dist/public",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": null
+}
+```
+
+Vercel Functions live in `api/` at the repo root. They can import any package installed by `pnpm install`.
+
+### Vite dev proxy for /api routes
+
+When a Vercel Function is at `api/send-email.ts`, add a proxy in `vite.config.ts` so local dev works:
+
+```ts
+server: {
+  proxy: {
+    '/api': {
+      target: `http://localhost:${process.env.API_PORT ?? '8080'}`,
+      changeOrigin: true,
+    },
+  },
+}
+```
+
+This means:
+- **Local dev**: `/api/*` → Express API server (same logic as the Vercel Function)
+- **Vercel production**: `/api/*` → Vercel Function (native, no proxy)
+- **Frontend code**: just calls `/api/send-email` — no base URL needed
 
 ---
 
@@ -190,6 +293,8 @@ This project uses a pnpm monorepo. Key rules:
 - Rewrite working architecture without necessity
 - Change package managers, databases, or auth systems without explicit user authorization
 - Create a real Vercel production deployment just to test portability
+- Provision a database just because a database package exists in the workspace
+- Keep a persistent Express server for production when all routes are stateless
 
 ---
 

@@ -261,8 +261,7 @@ export default function Planner() {
         businessDescription: data.businessDescription,
       };
 
-      const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-      const res = await fetch(`${apiBase}/api/send-email`, {
+      const res = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

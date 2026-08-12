@@ -1,0 +1,473 @@
+# OBJECTIVE
+
+Refactor the current Raven Planner repository so that it follows Raven Digital's standard production architecture:
+
+```text
+Replit (development)
+        ↓
+GitHub (source of truth)
+        ↓
+Vercel (Preview + Production)
+        ↓
+Client Domain (DNS)
+```
+
+The goal is **NOT** to rewrite the project.
+
+The goal is to remove unnecessary architectural complexity introduced during development while preserving all existing functionality.
+
+---
+
+# IMPORTANT
+
+Before making any changes:
+
+1. Inspect the repository.
+2. Understand the current architecture.
+3. Determine what is actually required.
+4. Make the **smallest safe architectural changes**.
+5. Preserve existing UI, styling, branding and functionality unless a change is required for portability.
+
+Do not redesign the application.
+
+Do not rebuild the frontend.
+
+Do not remove features.
+
+---
+
+# CURRENT OBSERVATIONS
+
+The repository currently contains:
+
+* a pnpm workspace
+* multiple artifacts
+* a React/Vite frontend
+* an Express API server
+* shared libraries
+* Replit development tooling
+
+The customer-facing application is relatively small.
+
+The current production architecture is more complicated than necessary.
+
+The objective is to simplify it without breaking anything.
+
+---
+
+# TARGET ARCHITECTURE
+
+The final production architecture should become:
+
+```text
+GitHub
+    ↓
+Vercel
+
+├── React/Vite Frontend
+│
+└── /api/*
+    Vercel Functions
+
+        ↓
+
+Email Provider
+```
+
+NOT:
+
+```text
+Frontend
+
+↓
+
+Separate Express Server
+
+↓
+
+Email
+```
+
+unless there is a genuine technical reason that requires a separate backend.
+
+---
+
+# STEP 1 — INSPECT
+
+Inspect the repository and determine:
+
+* frontend framework
+* package manager
+* monorepo/workspace structure
+* shared packages
+* backend architecture
+* API routes
+* database usage
+* storage usage
+* authentication
+* email implementation
+* deployment configuration
+
+Determine which parts are actually required for production.
+
+---
+
+# STEP 2 — IDENTIFY UNUSED COMPLEXITY
+
+Identify architecture that appears to exist only because of the Replit development environment.
+
+Examples include:
+
+* unnecessary workspace packages
+* mockup applications
+* demo applications
+* unused artifacts
+* unused libraries
+* Replit development tooling
+* Replit-specific package overrides
+* packages that are never imported
+* duplicated infrastructure
+
+Do NOT remove anything until its purpose is understood.
+
+Classify each item as:
+
+* Required
+* Optional
+* Development-only
+* Unused
+
+---
+
+# STEP 3 — FRONTEND
+
+Preserve the existing frontend.
+
+Keep:
+
+* React
+* Vite
+* routing
+* styling
+* planner UI
+* branding
+* responsiveness
+
+Do not redesign anything.
+
+---
+
+# STEP 4 — API
+
+Inspect the Express backend.
+
+Determine every route.
+
+For each route determine whether it:
+
+* can become a Vercel Function
+* genuinely requires a persistent Express server
+* requires background processing
+* depends on long-running state
+
+If a route only:
+
+* validates input
+* sends email
+* returns JSON
+
+then migrate it into a Vercel Function.
+
+Do NOT keep Express running permanently unless necessary.
+
+If Express is retained, explain why.
+
+---
+
+# STEP 5 — EMAIL
+
+Inspect the email implementation.
+
+Preserve all functionality.
+
+Move email sending into a Vercel-compatible API function if appropriate.
+
+Keep credentials server-side.
+
+Use environment variables.
+
+Do not expose secrets to the frontend.
+
+---
+
+# STEP 6 — DATABASE
+
+Inspect the database package.
+
+Determine whether the planner actually requires persistent storage.
+
+If the planner only emails submissions and does not store them:
+
+Do NOT introduce PostgreSQL simply because a database package exists.
+
+If the database is genuinely required:
+
+Preserve it.
+
+Explain why.
+
+---
+
+# STEP 7 — WORKSPACE
+
+Inspect the pnpm workspace.
+
+Determine whether the production application actually requires:
+
+* multiple applications
+* shared libraries
+* workspace dependencies
+
+If the current workspace is justified:
+
+Keep it.
+
+If parts exist only for development:
+
+Separate development tooling from production.
+
+Do not unnecessarily collapse the workspace into a single project.
+
+---
+
+# STEP 8 — REPLIT CLEANUP
+
+Inspect:
+
+* @replit packages
+* Replit plugins
+* Replit package overrides
+* REPLIT_* variables
+* REPL_ID
+* BASE_PATH usage
+
+Development-only Replit tooling is acceptable.
+
+Production must not depend on Replit.
+
+Do not remove useful development tooling.
+
+Instead ensure production builds work without Replit.
+
+---
+
+# STEP 9 — VERCEL
+
+Configure the repository so that Vercel can deploy it with minimal configuration.
+
+Prefer automatic framework detection.
+
+Create vercel.json only if absolutely necessary.
+
+Determine:
+
+* Root Directory
+* Framework
+* Build Command
+* Install Command
+* Output Directory
+
+Document any required configuration.
+
+---
+
+# STEP 10 — CLEAN BUILD
+
+Validate from a clean state.
+
+Run where applicable:
+
+* install
+* typecheck
+* lint
+* tests
+* production build
+
+Ensure the project builds without Replit.
+
+---
+
+# STEP 11 — UPDATE THE PORTABLE SKILL
+
+Locate the reusable **portable** skill.
+
+Update it based on lessons learned from this repository.
+
+Specifically improve the skill so that future projects automatically detect and handle situations like this.
+
+Add or improve checks for:
+
+## Workspace Detection
+
+Determine whether a monorepo is actually required.
+
+Do not assume every workspace should be flattened.
+
+Identify the production application inside the workspace.
+
+---
+
+## Backend Detection
+
+Determine whether an Express backend actually requires a persistent server.
+
+Recommend Vercel Functions when appropriate.
+
+Do not automatically assume Express is incompatible with Vercel.
+
+---
+
+## API Classification
+
+Classify API routes into:
+
+* Stateless
+* Stateful
+* Background
+* Long-running
+
+Recommend the smallest compatible deployment architecture.
+
+---
+
+## Database Detection
+
+Determine whether a database package is actually used in production.
+
+Warn if unused infrastructure exists.
+
+---
+
+## Replit Package Detection
+
+Classify:
+
+* development-only
+* production
+* optional
+
+Do not blindly remove Replit packages.
+
+---
+
+## Workspace Artifact Detection
+
+Identify:
+
+* mockup projects
+* demo apps
+* experimental artifacts
+* development sandboxes
+
+Determine whether they are production requirements.
+
+---
+
+## Infrastructure Simplification
+
+The skill should recommend the simplest architecture that satisfies production requirements.
+
+Avoid unnecessary services.
+
+---
+
+## Deployment Recommendation
+
+The skill should recommend one of:
+
+* Static Vercel
+* Vercel + Functions
+* Vercel + Database
+* Vercel + External Backend
+* Alternative Platform
+
+based on actual repository analysis.
+
+---
+
+# STEP 12 — DOCUMENTATION
+
+Update:
+
+```
+docs/PORTABILITY.md
+```
+
+and
+
+```
+docs/DEPLOYMENT.md
+```
+
+to reflect the simplified architecture.
+
+Document:
+
+* project structure
+* production architecture
+* deployment workflow
+* environment variables
+* external services
+* handover process
+
+Do not include secrets.
+
+---
+
+# FINAL REPORT
+
+Return a concise report containing:
+
+```
+PORTABILITY STATUS
+
+VERCEL DEPLOYABILITY
+
+PROJECT STRUCTURE
+
+ARCHITECTURE CHANGES
+
+REPLIT DEPENDENCIES
+
+WORKSPACE ANALYSIS
+
+BACKEND ANALYSIS
+
+DATABASE ANALYSIS
+
+EMAIL ANALYSIS
+
+CHANGES MADE
+
+FILES MODIFIED
+
+ENVIRONMENT VARIABLES
+(names only)
+
+VERCEL CONFIGURATION
+
+VALIDATION
+
+typecheck
+lint
+tests
+build
+
+PORTABLE SKILL IMPROVEMENTS
+
+REMAINING RISKS
+```
+
+Do not claim success unless the corresponding validation actually passes.
+
+The end result should be a repository that is easy to develop in Replit, reproducible from GitHub, deployable on Vercel with minimal configuration, and simple to hand over to a client without unnecessary infrastructure or vendor lock-in.

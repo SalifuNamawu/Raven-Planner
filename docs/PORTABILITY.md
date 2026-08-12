@@ -6,6 +6,18 @@
 Replit (develop) → GitHub (source of truth) → Vercel (deploy) → DNS (custom domain)
 ```
 
+## Production Architecture
+
+```
+Vercel
+├── Static frontend     (artifacts/raven-digital/dist/public)
+└── /api/send-email     (api/send-email.ts — Vercel Serverless Function)
+        ↓
+    Gmail SMTP
+```
+
+No persistent Express server. No database. No external backend required.
+
 ## Development Environment
 
 Replit is used as the development IDE only. It is not required for production.
@@ -14,13 +26,8 @@ All Replit-specific tooling is conditionally loaded and excluded from production
 ## GitHub — Source of Truth
 
 The complete application is reproducible from the GitHub repository.
-All source, config, migrations, and lockfiles are committed.
+All source, config, and lockfiles are committed.
 Secrets are **NOT** committed — they live in Replit Secrets (dev) and Vercel Environment Variables (prod).
-
-## Production Platform
-
-- **Frontend:** Vercel (static Vite build)
-- **API Server:** Vercel (separate project) or Railway / Render (persistent Express process)
 
 ## Replit-Specific Components
 
@@ -28,42 +35,55 @@ Secrets are **NOT** committed — they live in Replit Secrets (dev) and Vercel E
 |---|---|---|
 | `@replit/vite-plugin-cartographer` | development-only | Loaded only when `REPL_ID` is set and `NODE_ENV !== 'production'` |
 | `@replit/vite-plugin-dev-banner` | development-only | Same guard as above |
-| `@replit/vite-plugin-runtime-error-modal` | development-only | Included in devDependencies; safe to keep |
+| `@replit/vite-plugin-runtime-error-modal` | development-only | In devDependencies; not emitted in production bundles |
 | `REPL_ID` env var | development-only | Used only as a guard to enable Replit dev plugins |
 | `BASE_PATH` env var | development-only | Injected by Replit artifact runner; defaults to `/` when absent (Vercel) |
 | `PORT` env var | development-only | Required for dev server; not required at build time |
+| `artifacts/api-server` | development-only | Express server for local /api proxy; not deployed to Vercel |
+| `artifacts/mockup-sandbox` | development-only | Design tool; not deployed |
 
 ## External Production Services
 
 | Service | Provider | Purpose |
 |---|---|---|
-| Database | PostgreSQL (e.g. Neon, Supabase, Railway) | Drizzle ORM via `DATABASE_URL` |
 | Email | Gmail SMTP | Planner form submissions via `GMAIL_USER` / `GMAIL_APP_PASSWORD` |
+
+## Workspace Analysis
+
+| Package | Classification | Production? |
+|---|---|---|
+| `artifacts/raven-digital` | Required | YES — deployed to Vercel |
+| `api/send-email.ts` | Required | YES — deployed as Vercel Function |
+| `artifacts/api-server` | Development-only | NO — local proxy only |
+| `artifacts/mockup-sandbox` | Development-only | NO — design tool |
+| `lib/api-client-react` | Unused in production | NO — generated client, no active callers |
+| `lib/api-spec` | Development-only | NO — OpenAPI codegen tool |
+| `lib/api-zod` | Used by api-server only | NO — healthz route validation |
+| `lib/db` | Unused | NO — empty schema, no queries |
+| `scripts` | Development-only | NO — post-merge tooling |
 
 ## Portability Status
 
-**PASS WITH WARNINGS**
+**PASS**
 
 - ✅ No Replit-specific code in production paths
 - ✅ No Replit Auth, Replit Database, or Replit Storage
 - ✅ No secrets in committed files
 - ✅ Replit dev plugins are conditionally loaded (dev-only guard)
-- ⚠️ `DATABASE_URL` is required by `lib/db` — the DB package is a workspace dependency but the schema is currently empty (`lib/db/src/schema/index.ts` exports nothing). Ensure a real PostgreSQL database is provisioned before deploying the API server.
-
-## Known Portability Limitations
-
-- The API server is a persistent Express process and cannot run as a Vercel Serverless Function without adaptation. Deploy it to Railway, Render, or as a separate Vercel project using `@vercel/node`.
-- If the API is deployed on a different domain from the frontend, `VITE_API_BASE_URL` must be set and `setBaseUrl()` must be called in the frontend entry point before API calls are made. (No cross-origin API calls exist yet in the frontend.)
+- ✅ No persistent Express server required in production
+- ✅ No database required in production
+- ✅ `vercel.json` at repo root — one-click Vercel deployment
+- ✅ `api/send-email.ts` — Vercel Function, co-hosted with frontend (no CORS, no separate domain)
+- ✅ Frontend calls `/api/send-email` — relative URL, works identically on Vercel and in Replit dev (via Vite proxy)
 
 ## Handover Checklist
 
 To hand this project to a client or another developer:
 
 - [ ] Transfer GitHub repository ownership
-- [ ] Transfer Vercel project (frontend)
-- [ ] Transfer Vercel / Railway project (API server)
+- [ ] Transfer Vercel project
 - [ ] Transfer domain / DNS
-- [ ] Share `DATABASE_URL` via secure channel (never via Git)
-- [ ] Share `SESSION_SECRET`, `GMAIL_USER`, `GMAIL_APP_PASSWORD` via secure channel
+- [ ] Share `GMAIL_USER` via secure channel (never via Git)
+- [ ] Share `GMAIL_APP_PASSWORD` via secure channel
 - [ ] Transfer Gmail account used for `GMAIL_USER`, or reconfigure with the client's email
 - [ ] Remove original developer's personal accounts from all production services
