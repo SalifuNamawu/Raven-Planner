@@ -109,6 +109,11 @@ type StepData = {
 
 type Phase = 'collecting' | 'review' | 'success';
 
+type SubmitState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'error'; errorMsg: string };
+
 const initial: StepData = {
   businessType: '',
   package: '',
@@ -215,6 +220,9 @@ export default function Planner() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const colourInputRef = useRef<HTMLInputElement>(null);
 
+  const [submitState, setSubmitState] = useState<SubmitState>({ status: 'idle' });
+  const [refNumber, setRefNumber] = useState('');
+
   const total = calcTotal(data);
   const isCustomQuote = data.package === 'Business Pro';
 
@@ -223,11 +231,60 @@ export default function Planner() {
   const goReview = () => { setPhase('review'); };
   const goBack = () => { setPhase('collecting'); };
 
-  const openWhatsApp = () => {
+  const handleSubmit = async () => {
+    // Generate a reference number
+    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const randPart = Math.random().toString(36).slice(2, 6).toUpperCase();
+    const ref = `RD-${datePart}-${randPart}`;
+    setRefNumber(ref);
+
+    // Open WhatsApp immediately so the browser doesn't block the popup
     const msg = buildWhatsAppMessage(data, total);
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
-    window.open(url, '_blank');
-    setTimeout(() => setPhase('success'), 800);
+    const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+
+    setSubmitState({ status: 'loading' });
+
+    try {
+      const payload = {
+        refNumber: ref,
+        total: total ?? 0,
+        markdown: msg,
+        contact: data.contact,
+        businessType: data.businessType,
+        package: data.package,
+        features: data.features,
+        brandingAddons: data.brandingAddons,
+        logoOption: data.logoOption,
+        logoStyle: data.logoStyle,
+        brandColour: data.brandColour,
+        businessDescription: data.businessDescription,
+      };
+
+      const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
+      const res = await fetch(`${apiBase}/api/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({})) as { error?: string };
+        const msg503 = res.status === 503
+          ? 'Email delivery is not yet configured — your WhatsApp message is ready to send.'
+          : (errBody.error ?? 'Could not send confirmation email. Please send your WhatsApp message to confirm.');
+        setSubmitState({ status: 'error', errorMsg: msg503 });
+        return;
+      }
+
+      setSubmitState({ status: 'idle' });
+      setTimeout(() => setPhase('success'), 600);
+    } catch {
+      setSubmitState({
+        status: 'error',
+        errorMsg: 'Network error — confirmation email could not be sent. Your WhatsApp message is ready to send.',
+      });
+    }
   };
 
   const restart = () => {
@@ -235,6 +292,8 @@ export default function Planner() {
     setStep(1);
     setDirection(-1);
     setPhase('collecting');
+    setSubmitState({ status: 'idle' });
+    setRefNumber('');
   };
 
   // ── Header pricing pill ──────────────────────────────────────────────────────
@@ -244,8 +303,8 @@ export default function Planner() {
   const pageKey = phase === 'collecting' ? `step-${step}` : phase;
 
   const renderContent = () => {
-    if (phase === 'review') return <ReviewPage data={data} total={total} isCustomQuote={isCustomQuote} onBack={goBack} onWhatsApp={openWhatsApp} />;
-    if (phase === 'success') return <SuccessPage onRestart={restart} />;
+    if (phase === 'review') return <ReviewPage data={data} total={total} isCustomQuote={isCustomQuote} onBack={goBack} onSubmit={handleSubmit} submitState={submitState} />;
+    if (phase === 'success') return <SuccessPage refNumber={refNumber} onRestart={restart} />;
 
     switch (step) {
       case 1: return <Step1 data={data} setData={setData} onNext={next} />;
@@ -333,12 +392,13 @@ export default function Planner() {
 }
 
 // ─── Review Page ──────────────────────────────────────────────────────────────
-function ReviewPage({ data, total, isCustomQuote, onBack, onWhatsApp }: {
+function ReviewPage({ data, total, isCustomQuote, onBack, onSubmit, submitState }: {
   data: StepData;
   total: number | null;
   isCustomQuote: boolean;
   onBack: () => void;
-  onWhatsApp: () => void;
+  onSubmit: () => void;
+  submitState: SubmitState;
 }) {
   // Build price breakdown items
   const lineItems: { label: string; amount: number }[] = [];
@@ -461,23 +521,51 @@ function ReviewPage({ data, total, isCustomQuote, onBack, onWhatsApp }: {
         )}
       </motion.div>
 
-      {/* WhatsApp button */}
+      {/* WhatsApp / submit button */}
       <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.32 }}
         className="mt-8">
         <motion.button
-          whileHover={{ scale: 1.02, boxShadow: '0 20px 40px rgba(37,211,102,0.3)' }}
-          whileTap={{ scale: 0.98 }}
-          onClick={onWhatsApp}
-          className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl font-bold text-lg text-white transition-all"
+          whileHover={submitState.status === 'loading' ? {} : { scale: 1.02, boxShadow: '0 20px 40px rgba(37,211,102,0.3)' }}
+          whileTap={submitState.status === 'loading' ? {} : { scale: 0.98 }}
+          onClick={submitState.status === 'loading' ? undefined : onSubmit}
+          disabled={submitState.status === 'loading'}
+          className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl font-bold text-lg text-white transition-all disabled:opacity-70 disabled:cursor-not-allowed"
           style={{ background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)' }}
         >
-          <MessageCircle className="w-6 h-6" />
-          Continue on WhatsApp
-          <ChevronRight className="w-5 h-5 opacity-70" />
+          {submitState.status === 'loading' ? (
+            <>
+              <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+              Sending…
+            </>
+          ) : (
+            <>
+              <MessageCircle className="w-6 h-6" />
+              Continue on WhatsApp
+              <ChevronRight className="w-5 h-5 opacity-70" />
+            </>
+          )}
         </motion.button>
         <p className="mt-3 text-center text-sm text-muted-foreground">
           Opens WhatsApp with your details pre-filled. You just hit send.
         </p>
+
+        {/* Error banner */}
+        {submitState.status === 'error' && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-4 flex items-start gap-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 px-5 py-4"
+          >
+            <Mail className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-red-700 dark:text-red-400">Email not sent</p>
+              <p className="mt-0.5 text-sm text-red-600 dark:text-red-500">{submitState.errorMsg}</p>
+            </div>
+          </motion.div>
+        )}
       </motion.div>
 
       {/* Contact details recap */}
@@ -518,7 +606,7 @@ function ReviewPage({ data, total, isCustomQuote, onBack, onWhatsApp }: {
 }
 
 // ─── Success Page (after WhatsApp) ────────────────────────────────────────────
-function SuccessPage({ onRestart }: { onRestart: () => void }) {
+function SuccessPage({ onRestart, refNumber }: { onRestart: () => void; refNumber: string }) {
   const steps = [
     { label: 'Your details have been prepared', done: true },
     { label: 'WhatsApp opened with your message', done: true },
@@ -572,6 +660,18 @@ function SuccessPage({ onRestart }: { onRestart: () => void }) {
       >
         Your project details are ready. Just send the WhatsApp message to get started.
       </motion.p>
+
+      {/* Reference number */}
+      {refNumber && (
+        <motion.div
+          initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.38 }}
+          className="mt-6 px-6 py-4 rounded-2xl border border-primary/20 bg-primary/5 max-w-sm w-full"
+        >
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Reference Number</p>
+          <p className="mt-1 text-xl font-black text-primary font-mono tracking-wide">{refNumber}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Quote this when you contact us.</p>
+        </motion.div>
+      )}
 
       {/* Step checklist */}
       <motion.div
