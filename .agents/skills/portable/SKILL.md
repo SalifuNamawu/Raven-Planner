@@ -246,20 +246,46 @@ This project uses a pnpm monorepo. Key rules:
 - Preserve workspace dependencies; do not flatten the monorepo unless justified
 - Development artifacts (sandboxes, mockups, design tools) are NOT deployed
 
-### vercel.json for monorepo root deployments
+### Recommend the simplest project structure
 
-When the Vercel project root is the repo root (not a subdirectory), use `vercel.json`:
+Before recommending a monorepo, ask: **is there more than one deployable application?**
+
+If there is only one frontend app and one Vercel Function (or none):
+- Recommend flattening to a standard single-project structure
+- `src/` at repo root, `api/` at repo root, `package.json` at root
+- `pnpm-workspace.yaml` may still exist for dev-only sub-packages (local Express server, sandbox tools) but the root is the app
+- Vercel auto-detects Vite at the repo root — minimal or no `vercel.json` required
+
+If the workspace does contain genuinely separate deployable apps (different brands, different domains, different Vercel projects):
+- Keep the monorepo
+- Each app gets its own Vercel project with `Root Directory` pointing to its subdirectory
+
+### vercel.json for flattened root projects
+
+When the app is a standard Vite project at the repo root:
+
+```json
+{
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "dist",
+  "installCommand": "pnpm install --frozen-lockfile"
+}
+```
+
+Vercel Functions live in `api/` at the repo root. They are auto-detected — no `functions` config needed.
+
+### vercel.json for monorepo sub-app deployments
+
+When deploying a specific workspace app (not the root) to Vercel:
 
 ```json
 {
   "buildCommand": "pnpm --filter @workspace/<app> run build",
-  "outputDirectory": "artifacts/<app>/dist/public",
+  "outputDirectory": "artifacts/<app>/dist",
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": null
 }
 ```
-
-Vercel Functions live in `api/` at the repo root. They can import any package installed by `pnpm install`.
 
 ### Vite dev proxy for /api routes
 

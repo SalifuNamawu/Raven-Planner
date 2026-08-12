@@ -12,12 +12,12 @@ paths = [ "/" ]
 localPort = 22591
 
 [services.development]
-run = "pnpm --filter @workspace/raven-digital run dev"
+run = "sh -c 'cd /home/runner/workspace && pnpm run dev'"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/raven-digital", "run", "build" ]
+build = [ "sh", "-c", "cd /home/runner/workspace && pnpm run build" ]
 serve = "static"
-publicDir = "artifacts/raven-digital/dist/public"
+publicDir = "dist"
 
 [[services.production.rewrites]]
 from = "/*"

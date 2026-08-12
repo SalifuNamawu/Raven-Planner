@@ -6,7 +6,26 @@
 - **Node version:** 24+ (see `engines` in `package.json`)
 - **Frontend framework:** Vite + React (static build)
 - **API:** Vercel Functions (serverless — no persistent process required)
-- **Monorepo:** YES — pnpm workspaces
+- **Structure:** single project at repo root
+
+## Project Structure
+
+```
+/
+├── api/
+│   └── send-email.ts       ← Vercel Serverless Function
+├── src/                    ← React application source
+├── public/                 ← Static assets (favicon, robots.txt)
+├── index.html              ← Entry point
+├── package.json            ← App dependencies + scripts
+├── vite.config.ts          ← Build configuration
+├── tsconfig.json           ← TypeScript configuration
+├── components.json         ← shadcn/ui configuration
+├── vercel.json             ← Vercel deployment config
+└── artifacts/              ← Dev-only tools (not deployed)
+    ├── api-server/         ← Local Express server (proxied in dev)
+    └── mockup-sandbox/     ← UI design sandbox
+```
 
 ## Install
 
@@ -17,33 +36,22 @@ pnpm install
 ## Build
 
 ```bash
-# Build the frontend only
-pnpm --filter @workspace/raven-digital run build
-
-# Build everything (typecheck + all packages)
 pnpm run build
 ```
 
-## Output Directories
-
-| App | Output |
-|---|---|
-| `raven-digital` frontend | `artifacts/raven-digital/dist/public` |
-
----
+Output: `dist/`
 
 ## Vercel Deployment
 
-Connect the GitHub repository to a new Vercel project. Vercel reads `vercel.json` at the repo root — no manual configuration needed beyond environment variables.
+Connect the GitHub repository to a new Vercel project. Vercel reads `vercel.json` at the repo root — no manual configuration required beyond environment variables.
 
 ### `vercel.json` (already in repo)
 
 ```json
 {
-  "buildCommand": "pnpm --filter @workspace/raven-digital run build",
-  "outputDirectory": "artifacts/raven-digital/dist/public",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "framework": null
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "dist",
+  "installCommand": "pnpm install --frozen-lockfile"
 }
 ```
 
@@ -52,7 +60,7 @@ Connect the GitHub repository to a new Vercel project. Vercel reads `vercel.json
 | Setting | Value |
 |---|---|
 | Root Directory | *(repo root — leave blank)* |
-| Framework Preset | Other (auto-detected via vercel.json) |
+| Framework Preset | Vite (auto-detected) |
 | Node Version | 24.x |
 | Production Branch | `main` |
 
@@ -69,7 +77,7 @@ Configure in **Vercel → Settings → Environment Variables**.
 | `GMAIL_USER` | Production, Preview | Gmail address used to send planner submissions |
 | `GMAIL_APP_PASSWORD` | Production, Preview | Gmail App Password (16-char, not the account password) |
 
-> **No `VITE_API_BASE_URL` needed.** The frontend calls `/api/send-email` relative to its own origin, which is handled by the Vercel Function on the same domain.
+> **No `VITE_API_BASE_URL` needed.** The frontend calls `/api/send-email` relative to its own origin, which maps to the Vercel Function on the same domain.
 
 ---
 
@@ -115,11 +123,11 @@ Configure in **Vercel → Settings → Environment Variables**.
 # Install dependencies
 pnpm install
 
-# Start the API server (for /api proxy in dev — optional, email falls back gracefully)
+# Start the local API server (optional — email falls back gracefully if absent)
 PORT=8080 GMAIL_USER=... GMAIL_APP_PASSWORD=... pnpm --filter @workspace/api-server run dev
 
 # Start the frontend dev server
-PORT=3000 BASE_PATH=/ pnpm --filter @workspace/raven-digital run dev
+PORT=3000 pnpm run dev
 ```
 
 The Vite dev server proxies `/api/*` → `http://localhost:8080` automatically.
@@ -127,12 +135,11 @@ If the API server is not running, email submissions fall back gracefully (WhatsA
 
 Required local env vars:
 
-| Variable | Example |
-|---|---|
-| `PORT` | `3000` (frontend), `8080` (API server) |
-| `BASE_PATH` | `/` |
-| `GMAIL_USER` | `your@gmail.com` |
-| `GMAIL_APP_PASSWORD` | `abcd efgh ijkl mnop` |
+| Variable | Example | Notes |
+|---|---|---|
+| `PORT` | `3000` | Frontend dev server port |
+| `GMAIL_USER` | `your@gmail.com` | Optional for local dev |
+| `GMAIL_APP_PASSWORD` | `abcd efgh ijkl mnop` | Optional for local dev |
 
 ---
 
@@ -140,22 +147,16 @@ Required local env vars:
 
 ### Why no separate Express server in production?
 
-The planner's only backend operation is sending email. This is a stateless, request-scoped operation:
-- No database reads or writes
-- No background processing
-- No long-running state
-- No WebSockets
+The planner's only backend operation is sending email — a stateless, request-scoped operation with no database, no background processing, and no shared state. A Vercel Serverless Function handles this perfectly.
 
-A Vercel Serverless Function handles this perfectly. No persistent server is needed.
+### Why keep `artifacts/api-server`?
 
-### Why keep the Express API server in the repo?
-
-The Express server (`artifacts/api-server`) provides the local `/api` endpoint during Replit development, proxied from the Vite dev server. It is **not** deployed to Vercel. The production path is:
+The Express server provides the local `/api` endpoint during Replit development, proxied from the Vite dev server. It is **not** deployed. The production path is:
 
 ```
-Browser → Vercel CDN (static) + Vercel Function (/api/send-email)
+Browser → Vercel CDN (static) + Vercel Function (/api/send-email) → Gmail SMTP
 ```
 
 ### Why no database?
 
-The planner submits via WhatsApp and email only. There is no data that needs to be stored server-side. `lib/db` exists as a workspace package with an empty schema — it is not used in production and does not need to be provisioned.
+The planner submits via WhatsApp and email only. No data is stored server-side.

@@ -206,7 +206,7 @@ const fadeUp = {
   show: (i: number) => ({
     y: 0,
     opacity: 1,
-    transition: { delay: i * 0.06, type: 'spring', stiffness: 300, damping: 28 },
+    transition: { delay: i * 0.06, type: 'spring' as const, stiffness: 300, damping: 28 },
   }),
 };
 
@@ -993,7 +993,7 @@ const COLOUR_PALETTES = [
   { label: 'Modern Dark', colors: ['#0F172A', '#1E293B', '#334155'] },
 ];
 
-function Step5({ data, setData, onNext, onBack, colourInputRef }: { data: StepData; setData: React.Dispatch<React.SetStateAction<StepData>>; onNext: () => void; onBack: () => void; colourInputRef: React.RefObject<HTMLInputElement> }) {
+function Step5({ data, setData, onNext, onBack, colourInputRef }: { data: StepData; setData: React.Dispatch<React.SetStateAction<StepData>>; onNext: () => void; onBack: () => void; colourInputRef: React.RefObject<HTMLInputElement | null> }) {
   return (
     <StepWrapper title="Brand Colours." onBack={onBack}>
       <p className="text-muted-foreground mt-2 text-lg">Choose your preferred colour palette.</p>
@@ -1044,7 +1044,7 @@ const LOGO_STYLES = [
   { label: 'Icon Based', icon: LayoutGrid },
 ];
 
-function Step6({ data, setData, onNext, onBack, logoInputRef }: { data: StepData; setData: React.Dispatch<React.SetStateAction<StepData>>; onNext: () => void; onBack: () => void; logoInputRef: React.RefObject<HTMLInputElement> }) {
+function Step6({ data, setData, onNext, onBack, logoInputRef }: { data: StepData; setData: React.Dispatch<React.SetStateAction<StepData>>; onNext: () => void; onBack: () => void; logoInputRef: React.RefObject<HTMLInputElement | null> }) {
   const wantsDesign = data.logoOption === 'design';
   return (
     <StepWrapper title="Logo." onBack={onBack}>

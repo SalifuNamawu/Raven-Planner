@@ -10,13 +10,27 @@ Replit (develop) → GitHub (source of truth) → Vercel (deploy) → DNS (custo
 
 ```
 Vercel
-├── Static frontend     (artifacts/raven-digital/dist/public)
-└── /api/send-email     (api/send-email.ts — Vercel Serverless Function)
+├── Static frontend  (dist/)
+└── /api/send-email  (api/send-email.ts — Vercel Serverless Function)
         ↓
     Gmail SMTP
 ```
 
-No persistent Express server. No database. No external backend required.
+One repository. One Vercel project. No persistent server. No database.
+
+## Project Structure (Simplified)
+
+```
+/
+├── api/send-email.ts   ← Vercel Function (email delivery)
+├── src/                ← React app source
+├── public/             ← Static assets
+├── index.html
+├── package.json        ← All app dependencies
+├── vite.config.ts
+├── tsconfig.json
+└── artifacts/          ← Dev-only (not deployed)
+```
 
 ## Development Environment
 
@@ -35,11 +49,11 @@ Secrets are **NOT** committed — they live in Replit Secrets (dev) and Vercel E
 |---|---|---|
 | `@replit/vite-plugin-cartographer` | development-only | Loaded only when `REPL_ID` is set and `NODE_ENV !== 'production'` |
 | `@replit/vite-plugin-dev-banner` | development-only | Same guard as above |
-| `@replit/vite-plugin-runtime-error-modal` | development-only | In devDependencies; not emitted in production bundles |
+| `@replit/vite-plugin-runtime-error-modal` | development-only | In devDependencies; safe in prod bundles |
 | `REPL_ID` env var | development-only | Used only as a guard to enable Replit dev plugins |
-| `BASE_PATH` env var | development-only | Injected by Replit artifact runner; defaults to `/` when absent (Vercel) |
+| `BASE_PATH` env var | development-only | Injected by Replit artifact runner; defaults to `/` when absent |
 | `PORT` env var | development-only | Required for dev server; not required at build time |
-| `artifacts/api-server` | development-only | Express server for local /api proxy; not deployed to Vercel |
+| `artifacts/api-server` | development-only | Express server for local /api proxy; not deployed |
 | `artifacts/mockup-sandbox` | development-only | Design tool; not deployed |
 
 ## External Production Services
@@ -47,20 +61,6 @@ Secrets are **NOT** committed — they live in Replit Secrets (dev) and Vercel E
 | Service | Provider | Purpose |
 |---|---|---|
 | Email | Gmail SMTP | Planner form submissions via `GMAIL_USER` / `GMAIL_APP_PASSWORD` |
-
-## Workspace Analysis
-
-| Package | Classification | Production? |
-|---|---|---|
-| `artifacts/raven-digital` | Required | YES — deployed to Vercel |
-| `api/send-email.ts` | Required | YES — deployed as Vercel Function |
-| `artifacts/api-server` | Development-only | NO — local proxy only |
-| `artifacts/mockup-sandbox` | Development-only | NO — design tool |
-| `lib/api-client-react` | Unused in production | NO — generated client, no active callers |
-| `lib/api-spec` | Development-only | NO — OpenAPI codegen tool |
-| `lib/api-zod` | Used by api-server only | NO — healthz route validation |
-| `lib/db` | Unused | NO — empty schema, no queries |
-| `scripts` | Development-only | NO — post-merge tooling |
 
 ## Portability Status
 
@@ -72,9 +72,11 @@ Secrets are **NOT** committed — they live in Replit Secrets (dev) and Vercel E
 - ✅ Replit dev plugins are conditionally loaded (dev-only guard)
 - ✅ No persistent Express server required in production
 - ✅ No database required in production
-- ✅ `vercel.json` at repo root — one-click Vercel deployment
+- ✅ Standard Vite project at repo root — Vercel auto-detects framework
+- ✅ `vercel.json` provides minimal explicit config
 - ✅ `api/send-email.ts` — Vercel Function, co-hosted with frontend (no CORS, no separate domain)
-- ✅ Frontend calls `/api/send-email` — relative URL, works identically on Vercel and in Replit dev (via Vite proxy)
+- ✅ Frontend calls `/api/send-email` — relative URL, works on Vercel and in Replit dev (via Vite proxy)
+- ✅ Single `package.json` at root — all dependencies in one place
 
 ## Handover Checklist
 

@@ -23,7 +23,6 @@ if (rawPort !== undefined) {
 const basePath = process.env.BASE_PATH ?? '/';
 
 // API server port for the dev proxy. Defaults to 8080 (Replit workflow default).
-// Override with API_PORT env var if needed.
 const apiPort = process.env.API_PORT ?? '8080';
 
 export default defineConfig({
@@ -36,9 +35,7 @@ export default defineConfig({
     process.env.REPL_ID !== undefined
       ? [
           await import('@replit/vite-plugin-cartographer').then((m) =>
-            m.cartographer({
-              root: path.resolve(import.meta.dirname, '..'),
-            }),
+            m.cartographer({ root: import.meta.dirname }),
           ),
           await import('@replit/vite-plugin-dev-banner').then((m) =>
             m.devBanner(),
@@ -49,18 +46,13 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, 'src'),
-      '@assets': path.resolve(
-        import.meta.dirname,
-        '..',
-        '..',
-        'attached_assets',
-      ),
+      '@assets': path.resolve(import.meta.dirname, 'attached_assets'),
     },
     dedupe: ['react', 'react-dom'],
   },
   root: path.resolve(import.meta.dirname),
   build: {
-    outDir: path.resolve(import.meta.dirname, 'dist/public'),
+    outDir: path.resolve(import.meta.dirname, 'dist'),
     emptyOutDir: true,
   },
   server: {

@@ -1,0 +1,300 @@
+# OBJECTIVE
+
+Refactor this repository into Raven Digital's standard production template.
+
+Do **NOT** rewrite the application.
+
+Do **NOT** redesign the UI.
+
+Do **NOT** remove features.
+
+Preserve the planner exactly as it works today.
+
+The goal is to simplify the production architecture while keeping the user experience identical.
+
+---
+
+# CURRENT PROBLEM
+
+The current repository is a Replit-generated pnpm workspace containing multiple applications.
+
+The customer-facing application is relatively small, but the repository currently contains:
+
+* multiple workspace packages
+* a separate Express application
+* shared libraries
+* Replit-specific development tooling
+* deployment complexity that is unnecessary for this project
+
+This complexity is making deployment to Vercel unnecessarily difficult.
+
+---
+
+# TARGET ARCHITECTURE
+
+The final production architecture should become:
+
+```text
+GitHub
+    ↓
+Vercel
+
+├── React/Vite frontend
+│
+└── api/
+      send-email.ts
+      (Vercel Function)
+```
+
+There should be **one GitHub repository** and **one Vercel project**.
+
+The planner should continue working exactly as before.
+
+---
+
+# DO NOT CHANGE
+
+Preserve:
+
+* branding
+* UI
+* styling
+* planner workflow
+* generated email content
+* responsiveness
+* existing pages
+* routing
+* TypeScript
+* React
+* Vite
+
+Users should not notice any visual change.
+
+---
+
+# STEP 1
+
+Inspect the entire repository.
+
+Identify:
+
+* frontend
+* backend
+* workspace packages
+* shared libraries
+* deployment configuration
+
+Determine which parts are genuinely required.
+
+---
+
+# STEP 2
+
+Determine whether the current pnpm workspace is necessary.
+
+If the workspace only exists because of the original Replit project structure:
+
+Simplify it.
+
+If shared packages are genuinely useful:
+
+Preserve them.
+
+---
+
+# STEP 3
+
+Inspect the Express backend.
+
+Identify every route.
+
+For each route determine whether it can become a Vercel Function.
+
+If a route only:
+
+* validates data
+* sends email
+* returns JSON
+
+convert it into a Vercel Function.
+
+Do not keep a permanent Express server unless it is actually required.
+
+---
+
+# STEP 4
+
+Replace:
+
+```
+artifacts/api-server
+```
+
+with:
+
+```
+api/
+```
+
+using Vercel Functions.
+
+The frontend should continue calling:
+
+```
+/api/send-email
+```
+
+without requiring a separate deployment.
+
+---
+
+# STEP 5
+
+Inspect the email implementation.
+
+Preserve all behaviour.
+
+Move it into the Vercel Function.
+
+Keep credentials in environment variables.
+
+Do not expose secrets.
+
+---
+
+# STEP 6
+
+Inspect the database package.
+
+Determine whether it is actually required.
+
+If the planner only emails submissions and does not store them:
+
+Remove unnecessary production database dependencies.
+
+Do not remove anything that is genuinely used.
+
+---
+
+# STEP 7
+
+Remove unnecessary Replit production coupling.
+
+Development tooling may remain.
+
+Production must not depend on:
+
+* Replit runtime
+* Replit URLs
+* REPL_ID
+* REPLIT_*
+* Replit-specific deployment behaviour
+
+Conditional development plugins are acceptable.
+
+---
+
+# STEP 8
+
+Simplify the project structure.
+
+The goal should resemble:
+
+```
+Raven-Planner/
+
+api/
+src/
+public/
+
+package.json
+vite.config.ts
+tsconfig.json
+```
+
+Only keep a workspace if there is a genuine architectural reason.
+
+---
+
+# STEP 9
+
+Configure the repository for native Vercel deployment.
+
+Prefer automatic framework detection.
+
+Create vercel.json only if genuinely necessary.
+
+Avoid custom build scripts unless required.
+
+The repository should deploy as a standard Vite application.
+
+---
+
+# STEP 10
+
+Run:
+
+* install
+* typecheck
+* lint
+* tests
+* production build
+
+Fix any issues.
+
+---
+
+# STEP 11
+
+Update the reusable "portable" skill using lessons learned from this project.
+
+Improve it so future Raven Digital projects automatically detect:
+
+* unnecessary workspaces
+* unnecessary Express servers
+* APIs that should become Vercel Functions
+* Replit-generated project complexity
+* deployment issues caused by monorepos
+* incorrect Vercel root directories
+* incorrect output directories
+
+The portable skill should recommend the **simplest architecture** that satisfies the project requirements.
+
+---
+
+# STEP 12
+
+Update:
+
+docs/PORTABILITY.md
+
+and
+
+docs/DEPLOYMENT.md
+
+to match the simplified architecture.
+
+---
+
+# FINAL REPORT
+
+Return:
+
+* repository structure before
+* repository structure after
+* architecture changes
+* files modified
+* backend changes
+* Vercel changes
+* Replit dependencies removed
+* environment variables required
+* validation results
+* remaining risks
+
+Only report PASS when validation has actually succeeded.
+
+The finished repository should become Raven Digital's reusable template for business websites:
+
+Replit → GitHub → Vercel → Client Domain
+
+with one repository, one deployment, and no unnecessary production complexity.

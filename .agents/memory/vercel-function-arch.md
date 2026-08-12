@@ -9,7 +9,7 @@ The planner's email backend was migrated from a persistent Express server to a V
 
 **Dev path:** Frontend → `/api/send-email` → Vite proxy (`server.proxy`) → `localhost:8080` (Express API server)
 
-**Why:** The only API route that matters for production is POST `/send-email`. It is fully stateless (no DB, no shared state). Express was only needed in Replit dev.
+**Why:** The only API route that matters for production is POST `/send-email`. It is fully stateless (no DB, no shared state). Express was only needed in Replit dev. The monorepo workspace was also simplified — `lib/*` packages (api-client-react, api-spec, api-zod, db) were unused in production and removed. The frontend source moved from `artifacts/raven-digital/` to the repo root (`src/`, `index.html`, `public/`, `vite.config.ts`, `tsconfig.json`). The artifact.toml run command was updated to `sh -c 'cd /home/runner/workspace && pnpm run dev'`.
 
 **How to apply:**
 - `vercel.json` at repo root specifies `buildCommand`, `outputDirectory`, `installCommand`, `framework: null`
