@@ -20,11 +20,11 @@
 ├── package.json            ← App dependencies + scripts
 ├── vite.config.ts          ← Build configuration
 ├── tsconfig.json           ← TypeScript configuration
-├── components.json         ← shadcn/ui configuration
+├── tsconfig.base.json      ← Base TypeScript configuration
 ├── vercel.json             ← Vercel deployment config
-└── artifacts/              ← Dev-only tools (not deployed)
-    ├── api-server/         ← Local Express server (proxied in dev)
-    └── mockup-sandbox/     ← UI design sandbox
+└── docs/                   ← Documentation
+    ├── PORTABILITY.md
+    └── DEPLOYMENT.md
 ```
 
 ## Install
@@ -84,7 +84,7 @@ Configure in **Vercel → Settings → Environment Variables**.
 ## Deployment Workflow
 
 ```
-1. Develop on a feature branch in Replit
+1. Develop locally or in any IDE
 2. Push branch to GitHub
 3. Vercel automatically creates a Preview deployment
 4. Review and QA the Preview URL
@@ -117,17 +117,25 @@ Configure in **Vercel → Settings → Environment Variables**.
 
 ---
 
-## Local Development (outside Replit)
+## Local Development
 
 ```bash
 # Install dependencies
 pnpm install
 
-# Start the local API server (optional — email falls back gracefully if absent)
-PORT=8080 GMAIL_USER=... GMAIL_APP_PASSWORD=... pnpm --filter @workspace/api-server run dev
-
 # Start the frontend dev server
-PORT=3000 pnpm run dev
+pnpm run dev
+```
+
+The Vite dev server runs on `http://localhost:3000` (or PORT env var).
+
+### Optional: Local API Server
+
+For local email testing, run a local API server on port 8080:
+
+```bash
+# In a separate terminal
+PORT=8080 GMAIL_USER=... GMAIL_APP_PASSWORD=... node api/send-email.ts
 ```
 
 The Vite dev server proxies `/api/*` → `http://localhost:8080` automatically.
@@ -137,7 +145,7 @@ Required local env vars:
 
 | Variable | Example | Notes |
 |---|---|---|
-| `PORT` | `3000` | Frontend dev server port |
+| `PORT` | `3000` | Frontend dev server port (optional, defaults to 3000) |
 | `GMAIL_USER` | `your@gmail.com` | Optional for local dev |
 | `GMAIL_APP_PASSWORD` | `abcd efgh ijkl mnop` | Optional for local dev |
 
@@ -148,14 +156,6 @@ Required local env vars:
 ### Why no separate Express server in production?
 
 The planner's only backend operation is sending email — a stateless, request-scoped operation with no database, no background processing, and no shared state. A Vercel Serverless Function handles this perfectly.
-
-### Why keep `artifacts/api-server`?
-
-The Express server provides the local `/api` endpoint during Replit development, proxied from the Vite dev server. It is **not** deployed. The production path is:
-
-```
-Browser → Vercel CDN (static) + Vercel Function (/api/send-email) → Gmail SMTP
-```
 
 ### Why no database?
 

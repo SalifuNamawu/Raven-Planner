@@ -1,1 +1,0 @@
-- [Vercel Function architecture](vercel-function-arch.md) — email sending moved from Express to Vercel Function; Vite proxies /api in dev
