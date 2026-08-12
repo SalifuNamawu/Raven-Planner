@@ -1,0 +1,177 @@
+import { Router } from "express";
+import nodemailer from "nodemailer";
+import { logger } from "../lib/logger";
+
+const router = Router();
+
+const RECIPIENT = "raven.dig.mar@gmail.com";
+
+interface ContactInfo {
+  businessName?: string;
+  contactName?: string;
+  phone?: string;
+  email?: string;
+  city?: string;
+  website?: string;
+}
+
+interface EmailBody {
+  refNumber: string;
+  total: number;
+  markdown: string;
+  contact: ContactInfo;
+  businessType: string;
+  package: string;
+  features: string[];
+  brandingAddons: string[];
+  logoOption: string;
+  logoStyle: string;
+  brandColour: string;
+  businessDescription: string;
+}
+
+function buildEmailHtml(body: EmailBody): string {
+  const {
+    refNumber,
+    contact,
+    businessType,
+    package: pkg,
+    features,
+    brandingAddons,
+    logoOption,
+    logoStyle,
+    brandColour,
+    businessDescription,
+    total,
+  } = body;
+
+  const now = new Date().toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  const row = (label: string, value: string) =>
+    `<tr>
+      <td style="padding:8px 12px;font-weight:600;color:#6b7280;white-space:nowrap;vertical-align:top;width:140px">${label}</td>
+      <td style="padding:8px 12px;color:#111827">${value || "—"}</td>
+    </tr>`;
+
+  const logoText =
+    logoOption === "have"
+      ? "Already has a logo"
+      : logoOption === "upload"
+      ? "Uploading existing logo"
+      : logoOption === "design"
+      ? `Design for me${logoStyle ? ` — ${logoStyle} style` : ""}`
+      : "—";
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"/></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:Inter,system-ui,sans-serif">
+  <div style="max-width:640px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+
+    <div style="background:linear-gradient(135deg,#1d4ed8,#6366f1);padding:32px 40px">
+      <p style="margin:0;color:rgba(255,255,255,0.7);font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase">Raven Digital</p>
+      <h1 style="margin:8px 0 0;color:#fff;font-size:24px;font-weight:900">New Website Planner Submission</h1>
+      <p style="margin:8px 0 0;color:rgba(255,255,255,0.8);font-size:14px">${now}</p>
+    </div>
+
+    <div style="padding:32px 40px">
+
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:16px 20px;margin-bottom:28px">
+        <p style="margin:0;font-size:11px;font-weight:700;color:#3b82f6;text-transform:uppercase;letter-spacing:0.08em">Reference Number</p>
+        <p style="margin:4px 0 0;font-size:24px;font-weight:900;color:#1d4ed8;font-family:monospace;letter-spacing:0.05em">${refNumber}</p>
+      </div>
+
+      <h2 style="margin:0 0 12px;font-size:13px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.08em">Customer Details</h2>
+      <table style="width:100%;border-collapse:collapse;background:#f9fafb;border-radius:8px;overflow:hidden;margin-bottom:24px">
+        ${row("Business", contact.businessName || "—")}
+        ${row("Contact", contact.contactName || "—")}
+        ${row("Phone", contact.phone || "—")}
+        ${row("Email", contact.email || "—")}
+        ${row("City", contact.city || "—")}
+        ${contact.website ? row("Website", contact.website) : ""}
+      </table>
+
+      <h2 style="margin:0 0 12px;font-size:13px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.08em">Project Details</h2>
+      <table style="width:100%;border-collapse:collapse;background:#f9fafb;border-radius:8px;overflow:hidden;margin-bottom:24px">
+        ${row("Business Type", businessType)}
+        ${row("Package", pkg)}
+        ${row("Features", features.length > 0 ? features.join(", ") : "None")}
+        ${row("Branding", brandingAddons.length > 0 ? brandingAddons.join(", ") : "None")}
+        ${row("Logo", logoText)}
+        ${brandColour ? row("Brand Colours", brandColour) : ""}
+      </table>
+
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:16px 20px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:14px;color:#166534;font-weight:600">Estimated Total</span>
+        <span style="font-size:28px;font-weight:900;color:#16a34a">GH&#x20B5;${Number(total).toLocaleString()}</span>
+      </div>
+
+      ${
+        businessDescription
+          ? `<h2 style="margin:0 0 12px;font-size:13px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.08em">Business Description</h2>
+      <div style="background:#f9fafb;border-radius:8px;padding:16px;margin-bottom:24px;font-size:14px;color:#374151;line-height:1.6">${businessDescription.replace(/\n/g, "<br/>")}</div>`
+          : ""
+      }
+
+      <div style="border-top:1px solid #e5e7eb;padding-top:20px;margin-top:4px">
+        <p style="margin:0;font-size:12px;color:#9ca3af">
+          Generated by the Raven Digital Website Planner &bull; Reference: ${refNumber}
+        </p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+router.post("/send-email", async (req, res) => {
+  const gmailUser = process.env["GMAIL_USER"];
+  const gmailPass = process.env["GMAIL_APP_PASSWORD"];
+
+  if (!gmailUser || !gmailPass) {
+    logger.warn("Email not configured: GMAIL_USER or GMAIL_APP_PASSWORD missing");
+    return res.status(503).json({ error: "Email not configured" });
+  }
+
+  const body = req.body as EmailBody;
+  const { refNumber, markdown } = body;
+
+  if (!refNumber) {
+    return res.status(400).json({ error: "Missing refNumber" });
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user: gmailUser, pass: gmailPass },
+    });
+
+    await transporter.sendMail({
+      from: `"Raven Digital Planner" <${gmailUser}>`,
+      to: RECIPIENT,
+      subject: `New Website Planner Submission — ${refNumber}`,
+      html: buildEmailHtml(body),
+      attachments: [
+        {
+          filename: `raven-digital-${refNumber}.md`,
+          content: markdown,
+          contentType: "text/markdown",
+        },
+      ],
+    });
+
+    logger.info({ refNumber }, "Email sent successfully");
+    return res.json({ ok: true });
+  } catch (err) {
+    logger.error({ err, refNumber }, "Failed to send email");
+    return res.status(500).json({ error: "Failed to send email" });
+  }
+});
+
+export default router;
