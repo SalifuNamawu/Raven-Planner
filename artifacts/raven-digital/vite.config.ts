@@ -5,27 +5,22 @@ import { defineConfig } from 'vite';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
 
+// PORT is only required when running the dev server or preview.
+// During `vite build` (e.g. on Vercel) it is not needed.
 const rawPort = process.env.PORT;
+let port: number | undefined;
 
-if (!rawPort) {
-  throw new Error(
-    'PORT environment variable is required but was not provided.',
-  );
+if (rawPort !== undefined) {
+  const parsed = Number(rawPort);
+  if (Number.isNaN(parsed) || parsed <= 0) {
+    throw new Error(`Invalid PORT value: "${rawPort}"`);
+  }
+  port = parsed;
 }
 
-const port = Number(rawPort);
-
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
-
-const basePath = process.env.BASE_PATH;
-
-if (!basePath) {
-  throw new Error(
-    'BASE_PATH environment variable is required but was not provided.',
-  );
-}
+// BASE_PATH defaults to '/' for production builds (e.g. Vercel).
+// In Replit it is injected by the artifact runner.
+const basePath = process.env.BASE_PATH ?? '/';
 
 export default defineConfig({
   base: basePath,
@@ -65,8 +60,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    port,
-    strictPort: true,
+    ...(port !== undefined ? { port, strictPort: true } : {}),
     host: '0.0.0.0',
     allowedHosts: true,
     fs: {
@@ -74,7 +68,7 @@ export default defineConfig({
     },
   },
   preview: {
-    port,
+    ...(port !== undefined ? { port } : {}),
     host: '0.0.0.0',
     allowedHosts: true,
   },
