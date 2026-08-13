@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'wouter';
+import { Link, useSearch } from 'wouter';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -54,7 +54,7 @@ const WHATSAPP_NUMBER = '233240110523';
 
 const BASE_PRICES: Record<string, number> = {
   'Launch Website': 1199,
-  'Business Pro': 2999,
+  'Business Pro': 2499,
 };
 
 const LOGO_DESIGN_PRICE = 250;
@@ -375,6 +375,21 @@ export default function Planner() {
 
   const [submitState, setSubmitState] = useState<SubmitState>({ status: 'idle' });
 
+  // Pre-select package when arriving from homepage (?package=launch|pro)
+  const search = useSearch();
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const pkg = params.get('package');
+    if (pkg === 'launch') {
+      setData((d) => ({ ...d, package: 'Launch Website', features: [] }));
+      setStep(2);
+    } else if (pkg === 'pro') {
+      setData((d) => ({ ...d, package: 'Business Pro', features: [] }));
+      setStep(2);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const total = calcTotal(data);
   const totalSteps = getTotalSteps(data);
   const stepMap = getStepMapping(data);
@@ -458,31 +473,35 @@ export default function Planner() {
   };
 
   const handleWhatsApp = async () => {
-    if (!savedLeadId) return;
-    
+    // Generate a lead ID on demand if one hasn't been saved yet
+    const currentLeadId = savedLeadId || leadId || generateLeadId();
+    if (!leadId) setLeadId(currentLeadId);
+    if (!savedLeadId) setSavedLeadId(currentLeadId);
+
     setSubmitState({ status: 'loading' });
-    
-    await saveLeadToSheets(savedLeadId, 'WhatsApp', 'WhatsApp');
-    
-    const msg = buildWhatsAppMessage(data, total, savedLeadId);
+    await saveLeadToSheets(currentLeadId, 'WhatsApp', 'WhatsApp');
+
+    const msg = buildWhatsAppMessage(data, total, currentLeadId);
     const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
     window.open(waUrl, '_blank');
-    
+
     setSubmitState({ status: 'idle' });
     setTimeout(() => setPhase('success'), 600);
   };
 
   const handleEmail = async () => {
-    if (!savedLeadId) return;
-    
+    // Generate a lead ID on demand if one hasn't been saved yet
+    const currentLeadId = savedLeadId || leadId || generateLeadId();
+    if (!leadId) setLeadId(currentLeadId);
+    if (!savedLeadId) setSavedLeadId(currentLeadId);
+
     setSubmitState({ status: 'loading' });
-    
-    await saveLeadToSheets(savedLeadId, 'Email', 'Email');
-    
-    const subject = encodeURIComponent(`New Website Project Request \u2014 ${savedLeadId}`);
-    const body = encodeURIComponent(buildWhatsAppMessage(data, total, savedLeadId));
-    window.open(`mailto:raven.digmar@gmail.com?subject=${subject}&body=${body}`, '_blank');
-    
+    await saveLeadToSheets(currentLeadId, 'Email', 'Email');
+
+    const subject = encodeURIComponent(`New Website Project Request \u2014 ${currentLeadId}`);
+    const body = encodeURIComponent(buildWhatsAppMessage(data, total, currentLeadId));
+    window.open(`mailto:raven.dig.mar@gmail.com?subject=${subject}&body=${body}`, '_blank');
+
     setSubmitState({ status: 'idle' });
     setTimeout(() => setPhase('success'), 600);
   };
@@ -877,7 +896,7 @@ function SuccessPage({ onRestart, refNumber }: { onRestart: () => void; refNumbe
             <Mail className="w-5 h-5 text-primary shrink-0" />
             <div className="text-left">
               <p className="text-sm font-bold text-foreground">Email</p>
-              <p className="text-sm text-muted-foreground">raven.digmar@gmail.com</p>
+              <p className="text-sm text-muted-foreground">raven.dig.mar@gmail.com</p>
             </div>
           </div>
         </div>
@@ -904,7 +923,7 @@ function SuccessPage({ onRestart, refNumber }: { onRestart: () => void; refNumbe
           onClick={() => {
             const subject = encodeURIComponent(`New Website Project Request \u2014 ${refNumber}`);
             const body = encodeURIComponent(buildWhatsAppMessage(initial, null, refNumber));
-            window.open(`mailto:raven.digmar@gmail.com?subject=${subject}&body=${body}`, '_blank');
+            window.open(`mailto:raven.dig.mar@gmail.com?subject=${subject}&body=${body}`, '_blank');
           }}
           className="flex-1 py-4 px-6 rounded-2xl border-2 border-border text-foreground font-bold text-lg hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center gap-2"
         >
@@ -956,7 +975,7 @@ function StepPackage({ data, setData, onNext }: { data: StepData; setData: React
           <div className="relative">
             <span className="inline-block px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-bold uppercase tracking-widest mb-3">Enterprise</span>
             <h3 className="text-2xl font-black text-foreground">Business Pro</h3>
-            <div className="mt-1 text-3xl font-black text-foreground">GH\u20B52,999</div>
+            <div className="mt-1 text-3xl font-black text-foreground">GH\u20B52,499</div>
             <p className="mt-1 text-sm text-muted-foreground">For businesses that need a more advanced and professional website.</p>
           </div>
           <ul className="space-y-2 relative">
