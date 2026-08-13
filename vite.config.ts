@@ -39,6 +39,9 @@ export default defineConfig({
     ...(port !== undefined ? { port, strictPort: true } : {}),
     host: '0.0.0.0',
     allowedHosts: true,
+    watch: {
+      ignored: ['**/node_modules/**', '**/.local/**', '**/dist/**', '**/.cache/**'],
+    },
     fs: {
       strict: true,
     },

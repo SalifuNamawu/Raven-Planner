@@ -84,7 +84,7 @@
 | `vite.config.ts` | Removed Replit plugins, REPL_ID guard, @assets alias |
 | `tsconfig.base.json` | Removed `customConditions: ["workspace"]` |
 | `.gitignore` | Removed Replit, Expo, Nx, cursor entries |
-| `package.json` | Fixed preinstall script for cross-platform, removed workspace deps |
+| `package.json` | Fixed preinstall script for cross-platform, removed workspace deps, removed `packageManager` field (corepack enforcement causes pnpm install failures in Replit) |
 
 ## DEPLOYMENT CHANGES
 
@@ -164,8 +164,8 @@ Repo root (`/`)
 
 | Check | Status |
 |---|---|
-| `pnpm install` | ✅ Pass |
-| `pnpm run typecheck` | ✅ Pass |
+| `pnpm install --frozen-lockfile` | ✅ Pass |
+| `pnpm run typecheck` (`tsc --build` — project references) | ✅ Pass |
 | `pnpm run build` | ✅ Pass |
 | Vercel auto-detection | ✅ Compatible |
 | Single deployable app | ✅ Confirmed |

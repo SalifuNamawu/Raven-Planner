@@ -1,0 +1,1 @@
+- [Replit pnpm quirks](replit-pnpm-quirks.md) — three env-specific traps: packageManager corepack crash, ENOSPC watcher limit, workflow port mismatch.
