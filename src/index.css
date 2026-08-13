@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Symbols+2&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
@@ -110,7 +110,7 @@
   --shadow-md: 0px 8px 32px 0px hsl(221 83% 53% / 0.12), 0px 4px 8px 0px hsl(221 83% 53% / 0.08);
   --shadow-lg: 0px 16px 48px 0px hsl(221 83% 53% / 0.15), 0px 8px 16px 0px hsl(221 83% 53% / 0.10);
 
-  --app-font-sans: 'Inter', 'Noto Sans', sans-serif;
+  --app-font-sans: 'Inter', 'Noto Sans Symbols 2', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
 }
