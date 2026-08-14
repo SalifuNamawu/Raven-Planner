@@ -60,7 +60,7 @@ See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for details.
 | `GOOGLE_SHEETS_SPREADSHEET_ID` | Google Spreadsheet ID for completed planner forms |
 | `GOOGLE_SHEETS_SHEET_NAME` | Worksheet tab name (for example, `Sheet1`) |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Google service-account `client_email` |
-| `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Google service-account private key |
+| `GOOGLE_PRIVATE_KEY` | Google service-account private key |
 
 ## Scripts
 

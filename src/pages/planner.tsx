@@ -975,7 +975,7 @@ function StepPackage({ data, setData, onNext }: { data: StepData; setData: React
           <div className="relative">
             <span className="inline-block px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-bold uppercase tracking-widest mb-3">Enterprise</span>
             <h3 className="text-2xl font-black text-foreground">Business Pro</h3>
-            <div className="mt-1 text-3xl font-black text-foreground">GH\u20B52,499</div>
+            <div className="mt-1 text-3xl font-black text-foreground">GH₵2,499</div>
             <p className="mt-1 text-sm text-muted-foreground">For businesses that need a more advanced and professional website.</p>
           </div>
           <ul className="space-y-2 relative">
