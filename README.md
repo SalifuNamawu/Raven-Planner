@@ -57,6 +57,10 @@ See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for details.
 |---|---|
 | `GMAIL_USER` | Gmail address for sending emails |
 | `GMAIL_APP_PASSWORD` | Gmail App Password (16-char) |
+| `GOOGLE_SHEETS_SPREADSHEET_ID` | Google Spreadsheet ID for completed planner forms |
+| `GOOGLE_SHEETS_SHEET_NAME` | Worksheet tab name (for example, `Sheet1`) |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Google service-account `client_email` |
+| `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Google service-account private key |
 
 ## Scripts
 

@@ -1,4 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { upsertLead } from './google-sheets.js';
 
 interface LeadData {
   leadId: string;
@@ -56,14 +57,6 @@ function buildRow(data: LeadData): string[] {
   ];
 }
 
-function getGoogleSheetsUrl(): string {
-  const scriptId = process.env.GOOGLE_APPS_SCRIPT_ID;
-  if (!scriptId) {
-    throw new Error('GOOGLE_APPS_SCRIPT_ID not configured');
-  }
-  return `https://script.google.com/macros/s/${scriptId}/exec`;
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -76,31 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing leadId' });
     }
 
-    const sheetsUrl = getGoogleSheetsUrl();
-    
-    const response = await fetch(sheetsUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'saveLead',
-        data: buildRow(leadData),
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Google Sheets API error:', errorText);
-      return res.status(500).json({ error: 'Failed to save lead to Google Sheets' });
-    }
-
-    const result = await response.json() as { success: boolean; error?: string };
-    
-    if (!result.success) {
-      console.error('Google Sheets save failed:', result.error);
-      return res.status(500).json({ error: result.error || 'Failed to save lead' });
-    }
+    await upsertLead(buildRow(leadData));
 
     return res.json({ ok: true, leadId: leadData.leadId });
   } catch (err) {

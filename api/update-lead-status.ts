@@ -1,4 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { updateLeadStatusInSheet } from './google-sheets.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -16,37 +17,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing leadId' });
     }
 
-    const scriptId = process.env.GOOGLE_APPS_SCRIPT_ID;
-    if (!scriptId) {
-      return res.status(500).json({ error: 'Google Apps Script not configured' });
-    }
-
-    const sheetsUrl = `https://script.google.com/macros/s/${scriptId}/exec`;
-    
-    const response = await fetch(sheetsUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'updateLeadStatus',
-        leadId,
-        submissionStatus,
-        contactMethod,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Google Sheets API error:', errorText);
-      return res.status(500).json({ error: 'Failed to update lead status' });
-    }
-
-    const result = await response.json() as { success: boolean; error?: string };
-    
-    if (!result.success) {
-      console.error('Google Sheets update failed:', result.error);
-      return res.status(500).json({ error: result.error || 'Failed to update lead status' });
+    const updated = await updateLeadStatusInSheet(leadId, submissionStatus, contactMethod);
+    if (!updated) {
+      return res.status(404).json({ error: 'Lead not found' });
     }
 
     return res.json({ ok: true });

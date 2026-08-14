@@ -459,30 +459,43 @@ export default function Planner() {
 
   const handleWhatsApp = async () => {
     if (!savedLeadId) return;
-    
-    setSubmitState({ status: 'loading' });
-    
-    await saveLeadToSheets(savedLeadId, 'WhatsApp', 'WhatsApp');
-    
+
+    // Open synchronously within the click event. Waiting for the Sheets API first
+    // makes browsers treat this as an unsolicited popup and block it.
     const msg = buildWhatsAppMessage(data, total, savedLeadId);
     const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
-    window.open(waUrl, '_blank');
-    
+    const popup = window.open(waUrl, '_blank');
+    if (popup) popup.opener = null;
+    else window.location.assign(waUrl);
+
+    setSubmitState({ status: 'loading' });
+
+    const saved = await saveLeadToSheets(savedLeadId, 'WhatsApp', 'WhatsApp');
+    if (!saved) {
+      setSubmitState({ status: 'error', errorMsg: 'WhatsApp opened, but we could not update your lead record.' });
+      return;
+    }
+
     setSubmitState({ status: 'idle' });
     setTimeout(() => setPhase('success'), 600);
   };
 
   const handleEmail = async () => {
     if (!savedLeadId) return;
-    
-    setSubmitState({ status: 'loading' });
-    
-    await saveLeadToSheets(savedLeadId, 'Email', 'Email');
-    
+
+    // Like WhatsApp, the mail client must be launched before any asynchronous work.
     const subject = encodeURIComponent(`New Website Project Request \u2014 ${savedLeadId}`);
     const body = encodeURIComponent(buildWhatsAppMessage(data, total, savedLeadId));
-    window.open(`mailto:raven.digmar@gmail.com?subject=${subject}&body=${body}`, '_blank');
-    
+    window.location.assign(`mailto:raven.digmar@gmail.com?subject=${subject}&body=${body}`);
+
+    setSubmitState({ status: 'loading' });
+
+    const saved = await saveLeadToSheets(savedLeadId, 'Email', 'Email');
+    if (!saved) {
+      setSubmitState({ status: 'error', errorMsg: 'Your email client opened, but we could not update your lead record.' });
+      return;
+    }
+
     setSubmitState({ status: 'idle' });
     setTimeout(() => setPhase('success'), 600);
   };
@@ -735,7 +748,7 @@ function ReviewPage({ data, total, leadId, onBack, onWhatsApp, onEmail, submitSt
               animate={{ scale: 1, opacity: 1 }}
               className="text-2xl font-black text-primary"
             >
-              GH\u20B5{total?.toLocaleString()}
+              GH₵{total?.toLocaleString()}
             </motion.span>
           </motion.div>
         </div>
@@ -936,7 +949,7 @@ function StepPackage({ data, setData, onNext }: { data: StepData; setData: React
           <div>
             <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest mb-3">Most Popular</span>
             <h3 className="text-2xl font-black text-foreground">Launch Website</h3>
-            <div className="mt-1 text-3xl font-black text-primary">GH\u20B51,199</div>
+            <div className="mt-1 text-3xl font-black text-primary">GH₵1,199</div>
             <p className="mt-1 text-sm text-muted-foreground">Starting price</p>
           </div>
           <ul className="space-y-2">
@@ -956,7 +969,7 @@ function StepPackage({ data, setData, onNext }: { data: StepData; setData: React
           <div className="relative">
             <span className="inline-block px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-bold uppercase tracking-widest mb-3">Enterprise</span>
             <h3 className="text-2xl font-black text-foreground">Business Pro</h3>
-            <div className="mt-1 text-3xl font-black text-foreground">GH\u20B52,999</div>
+            <div className="mt-1 text-3xl font-black text-foreground">GH₵2,999</div>
             <p className="mt-1 text-sm text-muted-foreground">For businesses that need a more advanced and professional website.</p>
           </div>
           <ul className="space-y-2 relative">
@@ -1009,12 +1022,12 @@ function StepFeatures({ data, setData, onNext, onBack, total }: { data: StepData
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Current Estimate</p>
           <motion.p key={total} initial={{ y: -6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="text-3xl font-black text-primary">
-            GH\u20B5{total?.toLocaleString()}
+            GH₵{total?.toLocaleString()}
           </motion.p>
         </div>
         <div className="text-right text-sm text-muted-foreground">
           <p>{data.features.length} feature{data.features.length !== 1 ? 's' : ''} added</p>
-          {data.features.length > 0 && <p className="text-primary font-semibold">+GH\u20B5{data.features.reduce((a, f) => a + (FEATURE_PRICES[f] || 0), 0).toLocaleString()}</p>}
+          {data.features.length > 0 && <p className="text-primary font-semibold">+GH₵{data.features.reduce((a, f) => a + (FEATURE_PRICES[f] || 0), 0).toLocaleString()}</p>}
         </div>
       </motion.div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mt-6">
@@ -1029,7 +1042,7 @@ function StepFeatures({ data, setData, onNext, onBack, total }: { data: StepData
               </div>
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-semibold leading-tight ${selected ? 'text-primary' : 'text-foreground'}`}>{label}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">+GH\u20B5{FEATURE_PRICES[label]?.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">+GH₵{FEATURE_PRICES[label]?.toLocaleString()}</p>
               </div>
               <div className={`w-5 h-5 rounded shrink-0 border-2 flex items-center justify-center transition-colors ${selected ? 'bg-primary border-primary' : 'border-muted-foreground/30'}`}>
                 {selected && <CheckCircle2 className="w-3.5 h-3.5 text-primary-foreground" strokeWidth={3} />}
@@ -1087,7 +1100,7 @@ function StepBranding({ data, setData, onNext, onBack, total, logoInputRef }: { 
               </div>
               <div className="text-right">
                 <p className={`text-sm font-bold ${data.brandIdentityOption === value ? 'text-primary' : 'text-foreground'}`}>
-                  {price === 0 ? 'GH\u20B50' : '+GH\u20B5' + price.toLocaleString()}
+                  {price === 0 ? 'GH₵0' : '+GH₵' + price.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -1106,7 +1119,7 @@ function StepBranding({ data, setData, onNext, onBack, total, logoInputRef }: { 
         {wantsLogoDesign && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} className="mt-8">
             <p className="text-base font-semibold text-foreground mb-2">Choose your preferred logo style</p>
-            <p className="text-sm text-muted-foreground mb-4">Logo design adds GH\u20B5{LOGO_DESIGN_PRICE.toLocaleString()} to your estimate.</p>
+            <p className="text-sm text-muted-foreground mb-4">Logo design adds GH₵{LOGO_DESIGN_PRICE.toLocaleString()} to your estimate.</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {LOGO_STYLES.map(({ label, icon: Icon }) => {
                 const selected = data.logoStyle === label;
@@ -1126,7 +1139,7 @@ function StepBranding({ data, setData, onNext, onBack, total, logoInputRef }: { 
             {data.logoStyle && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20 flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Logo Design Added</span>
-                <span className="text-lg font-black text-primary">+GH\u20B5{LOGO_DESIGN_PRICE.toLocaleString()}</span>
+                <span className="text-lg font-black text-primary">+GH₵{LOGO_DESIGN_PRICE.toLocaleString()}</span>
               </motion.div>
             )}
           </motion.div>
@@ -1138,7 +1151,7 @@ function StepBranding({ data, setData, onNext, onBack, total, logoInputRef }: { 
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} className="mt-8">
             <div className="p-5 rounded-2xl border border-primary/20 bg-primary/5">
               <p className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-                <Sparkles className="w-4 h-4" /> Complete Brand Identity \u2014 GH\u20B5{COMPLETE_BRANDING_PRICE.toLocaleString()}
+                <Sparkles className="w-4 h-4" /> Complete Brand Identity \u2014 GH₵{COMPLETE_BRANDING_PRICE.toLocaleString()}
               </p>
               <ul className="space-y-2 text-sm text-foreground/80">
                 <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-primary shrink-0" />Logo Design</li>
