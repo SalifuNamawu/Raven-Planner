@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'wouter';
+import { Link, useSearch } from 'wouter';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -54,7 +54,7 @@ const WHATSAPP_NUMBER = '233240110523';
 
 const BASE_PRICES: Record<string, number> = {
   'Launch Website': 1199,
-  'Business Pro': 2999,
+  'Business Pro': 2499,
 };
 
 const LOGO_DESIGN_PRICE = 250;
@@ -375,6 +375,21 @@ export default function Planner() {
 
   const [submitState, setSubmitState] = useState<SubmitState>({ status: 'idle' });
 
+  // Pre-select package when arriving from homepage (?package=launch|pro)
+  const search = useSearch();
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const pkg = params.get('package');
+    if (pkg === 'launch') {
+      setData((d) => ({ ...d, package: 'Launch Website', features: [] }));
+      setStep(2);
+    } else if (pkg === 'pro') {
+      setData((d) => ({ ...d, package: 'Business Pro', features: [] }));
+      setStep(2);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const total = calcTotal(data);
   const totalSteps = getTotalSteps(data);
   const stepMap = getStepMapping(data);
@@ -444,9 +459,9 @@ export default function Planner() {
     const saved = await saveLeadToSheets(newLeadId, 'Completed \u2013 No Contact', 'None');
 
     if (!saved) {
-      setSubmitState({ 
-        status: 'error', 
-        errorMsg: 'Failed to save lead to Google Sheets. Please try again or continue anyway.' 
+      setSubmitState({
+        status: 'error',
+        errorMsg: 'Failed to save lead to Google Sheets. Please try again or continue anyway.'
       });
       setPhase('review');
       return;
@@ -458,43 +473,34 @@ export default function Planner() {
   };
 
   const handleWhatsApp = async () => {
-    if (!savedLeadId) return;
-
-    // Open synchronously within the click event. Waiting for the Sheets API first
-    // makes browsers treat this as an unsolicited popup and block it.
-    const msg = buildWhatsAppMessage(data, total, savedLeadId);
-    const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
-    const popup = window.open(waUrl, '_blank');
-    if (popup) popup.opener = null;
-    else window.location.assign(waUrl);
+    // Generate a lead ID on demand if one hasn't been saved yet
+    const currentLeadId = savedLeadId || leadId || generateLeadId();
+    if (!leadId) setLeadId(currentLeadId);
+    if (!savedLeadId) setSavedLeadId(currentLeadId);
 
     setSubmitState({ status: 'loading' });
+    await saveLeadToSheets(currentLeadId, 'WhatsApp', 'WhatsApp');
 
-    const saved = await saveLeadToSheets(savedLeadId, 'WhatsApp', 'WhatsApp');
-    if (!saved) {
-      setSubmitState({ status: 'error', errorMsg: 'WhatsApp opened, but we could not update your lead record.' });
-      return;
-    }
+    const msg = buildWhatsAppMessage(data, total, currentLeadId);
+    const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
 
     setSubmitState({ status: 'idle' });
     setTimeout(() => setPhase('success'), 600);
   };
 
   const handleEmail = async () => {
-    if (!savedLeadId) return;
-
-    // Like WhatsApp, the mail client must be launched before any asynchronous work.
-    const subject = encodeURIComponent(`New Website Project Request \u2014 ${savedLeadId}`);
-    const body = encodeURIComponent(buildWhatsAppMessage(data, total, savedLeadId));
-    window.location.assign(`mailto:raven.digmar@gmail.com?subject=${subject}&body=${body}`);
+    // Generate a lead ID on demand if one hasn't been saved yet
+    const currentLeadId = savedLeadId || leadId || generateLeadId();
+    if (!leadId) setLeadId(currentLeadId);
+    if (!savedLeadId) setSavedLeadId(currentLeadId);
 
     setSubmitState({ status: 'loading' });
+    await saveLeadToSheets(currentLeadId, 'Email', 'Email');
 
-    const saved = await saveLeadToSheets(savedLeadId, 'Email', 'Email');
-    if (!saved) {
-      setSubmitState({ status: 'error', errorMsg: 'Your email client opened, but we could not update your lead record.' });
-      return;
-    }
+    const subject = encodeURIComponent(`New Website Project Request \u2014 ${currentLeadId}`);
+    const body = encodeURIComponent(buildWhatsAppMessage(data, total, currentLeadId));
+    window.open(`mailto:raven.dig.mar@gmail.com?subject=${subject}&body=${body}`, '_blank');
 
     setSubmitState({ status: 'idle' });
     setTimeout(() => setPhase('success'), 600);
@@ -520,7 +526,7 @@ export default function Planner() {
     if (phase === 'saving-lead') return <SavingLeadPage />;
 
     const currentStepType = stepMap[step];
-    
+
     switch (currentStepType) {
       case 'package': return <StepPackage data={data} setData={setData} onNext={next} />;
       case 'businessType': return <StepBusinessType data={data} setData={setData} onNext={next} onBack={prev} />;
@@ -777,7 +783,7 @@ function ReviewPage({ data, total, leadId, onBack, onWhatsApp, onEmail, submitSt
             </>
           )}
         </motion.button>
-        
+
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}>
           <p className="text-center text-sm text-muted-foreground mb-2">Prefer Email?</p>
           <motion.button
@@ -890,7 +896,7 @@ function SuccessPage({ onRestart, refNumber }: { onRestart: () => void; refNumbe
             <Mail className="w-5 h-5 text-primary shrink-0" />
             <div className="text-left">
               <p className="text-sm font-bold text-foreground">Email</p>
-              <p className="text-sm text-muted-foreground">raven.digmar@gmail.com</p>
+              <p className="text-sm text-muted-foreground">raven.dig.mar@gmail.com</p>
             </div>
           </div>
         </div>
@@ -917,7 +923,7 @@ function SuccessPage({ onRestart, refNumber }: { onRestart: () => void; refNumbe
           onClick={() => {
             const subject = encodeURIComponent(`New Website Project Request \u2014 ${refNumber}`);
             const body = encodeURIComponent(buildWhatsAppMessage(initial, null, refNumber));
-            window.open(`mailto:raven.digmar@gmail.com?subject=${subject}&body=${body}`, '_blank');
+            window.open(`mailto:raven.dig.mar@gmail.com?subject=${subject}&body=${body}`, '_blank');
           }}
           className="flex-1 py-4 px-6 rounded-2xl border-2 border-border text-foreground font-bold text-lg hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center gap-2"
         >
@@ -969,7 +975,7 @@ function StepPackage({ data, setData, onNext }: { data: StepData; setData: React
           <div className="relative">
             <span className="inline-block px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-bold uppercase tracking-widest mb-3">Enterprise</span>
             <h3 className="text-2xl font-black text-foreground">Business Pro</h3>
-            <div className="mt-1 text-3xl font-black text-foreground">GH₵2,999</div>
+            <div className="mt-1 text-3xl font-black text-foreground">GH\u20B52,499</div>
             <p className="mt-1 text-sm text-muted-foreground">For businesses that need a more advanced and professional website.</p>
           </div>
           <ul className="space-y-2 relative">
@@ -1224,7 +1230,7 @@ function StepBrandColour({ data, setData, onNext, onBack, colourInputRef }: { da
           );
         })}
       </div>
-      
+
       <div className="mt-6 space-y-4">
         <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
           onClick={() => setData((d) => ({ ...d, colourPreference: 'custom', brandColour: '', uploadedColours: null }))}

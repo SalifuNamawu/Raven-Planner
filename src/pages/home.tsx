@@ -114,7 +114,7 @@ export default function Home() {
               
               <div className="flex-1">
                 <h3 className="text-2xl font-black text-foreground mb-2">Launch Website</h3>
-                <div className="text-4xl md:text-5xl font-black text-primary mb-2">GH₵1,199</div>
+                <div className="text-4xl md:text-5xl font-black text-primary mb-2">GH&#x20B5;1,199</div>
                 <p className="text-base text-muted-foreground font-medium mb-8">For businesses that need a professional online presence.</p>
                 
                 <ul className="space-y-3 mb-8">
@@ -128,7 +128,7 @@ export default function Home() {
               </div>
 
               <Link 
-                href="/planner" 
+                href="/planner?package=launch" 
                 className="w-full py-4 px-6 rounded-2xl font-bold text-lg text-center transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 focus:ring-primary shadow-lg shadow-primary/25"
               >
                 Build My Website
@@ -149,7 +149,7 @@ export default function Home() {
               <div className="flex-1">
                 <span className="inline-block px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-bold uppercase tracking-widest mb-3">Enterprise</span>
                 <h3 className="text-2xl font-black text-foreground mb-2">Business Pro</h3>
-                <div className="text-4xl md:text-5xl font-black text-foreground mb-2">GH₵2,999</div>
+                <div className="text-4xl md:text-5xl font-black text-foreground mb-2">GH&#x20B5;2,499</div>
                 <p className="text-base text-muted-foreground font-medium mb-8">For businesses that need a more advanced and professional website.</p>
                 
                 <ul className="space-y-3 mb-8">
@@ -163,7 +163,7 @@ export default function Home() {
               </div>
 
               <Link 
-                href="/planner" 
+                href="/planner?package=pro" 
                 className="w-full py-4 px-6 rounded-2xl font-bold text-lg text-center transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 bg-foreground text-background hover:bg-foreground/90 focus:ring-foreground shadow-md"
               >
                 Get Business Pro
