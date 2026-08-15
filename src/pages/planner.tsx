@@ -522,7 +522,7 @@ export default function Planner() {
 
   const renderContent = () => {
     if (phase === 'review') return <ReviewPage data={data} total={total} leadId={savedLeadId} onBack={goBack} onWhatsApp={handleWhatsApp} onEmail={handleEmail} submitState={submitState} step={step} setStep={setStep} setDirection={setDirection} setPhase={setPhase} onRetry={handleSubmit} />;
-    if (phase === 'success') return <SuccessPage refNumber={savedLeadId} onRestart={restart} />;
+    if (phase === 'success') return <SuccessPage data={data} total={total} refNumber={savedLeadId} onRestart={restart} />;
     if (phase === 'saving-lead') return <SavingLeadPage />;
 
     const currentStepType = stepMap[step];
@@ -823,7 +823,7 @@ function ReviewPage({ data, total, leadId, onBack, onWhatsApp, onEmail, submitSt
   );
 }
 
-function SuccessPage({ onRestart, refNumber }: { onRestart: () => void; refNumber: string }) {
+function SuccessPage({ data, total, onRestart, refNumber }: { data: StepData; total: number | null; onRestart: () => void; refNumber: string }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-16 min-h-[calc(100vh-64px)]">
       <motion.div
@@ -909,7 +909,7 @@ function SuccessPage({ onRestart, refNumber }: { onRestart: () => void; refNumbe
         <motion.button
           whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
           onClick={() => {
-            const msg = buildWhatsAppMessage(initial, null, refNumber);
+            const msg = buildWhatsAppMessage(data, total, refNumber);
             const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
             window.open(waUrl, '_blank');
           }}
@@ -922,7 +922,7 @@ function SuccessPage({ onRestart, refNumber }: { onRestart: () => void; refNumbe
           whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
           onClick={() => {
             const subject = encodeURIComponent(`New Website Project Request \u2014 ${refNumber}`);
-            const body = encodeURIComponent(buildWhatsAppMessage(initial, null, refNumber));
+            const body = encodeURIComponent(buildWhatsAppMessage(data, total, refNumber));
             window.open(`mailto:raven.dig.mar@gmail.com?subject=${subject}&body=${body}`, '_blank');
           }}
           className="flex-1 py-4 px-6 rounded-2xl border-2 border-border text-foreground font-bold text-lg hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center gap-2"
